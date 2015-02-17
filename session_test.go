@@ -10,8 +10,6 @@ import (
 	"github.com/issue9/assert"
 )
 
-// 仅测试部分功能，另一部分功能放在github.com/issue9/session/stores/memory包中测试
-
 func TestSessionID(t *testing.T) {
 	m := make(map[string]interface{}, 0)
 
