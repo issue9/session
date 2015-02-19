@@ -10,13 +10,16 @@ import (
 	"time"
 )
 
+// Session的一些设置项。
 type Options struct {
 	store    Store
 	lifetime int
 	cookie   *http.Cookie
 }
 
-func NewOptions(store Store, lifetime int, sessionIDName string, secure bool) *Options {
+// 声明一个新的Options实例。
+// store：该实例对应的Store接口；lifetime：Session的生存周期；
+func NewOptions(store Store, sessionIDName, path, domain string, lifetime int, secure bool) *Options {
 	return &Options{
 		store:    store,
 		lifetime: lifetime,
@@ -24,7 +27,8 @@ func NewOptions(store Store, lifetime int, sessionIDName string, secure bool) *O
 			Name:     sessionIDName,
 			Secure:   secure,
 			HttpOnly: true,
-			Path:     "/",
+			Path:     path,
+			Domain:   domain,
 		},
 	}
 }

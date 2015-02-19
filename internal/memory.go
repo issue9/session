@@ -12,9 +12,6 @@ import (
 	"github.com/issue9/session"
 )
 
-// 当前包的版本
-const Version = "0.1.2.140823"
-
 // implement session.Store
 type store struct {
 	sync.Mutex

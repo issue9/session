@@ -1,6 +1,14 @@
 session [![Build Status](https://travis-ci.org/issue9/session.svg?branch=master)](https://travis-ci.org/issue9/session)
 ======
 
+```go
+memStore := stores.NewMemory()
+opt := session.NewOptions(memStore,...)
+
+// 在每一个Handler中调用Start()开始一个Session操作。
+sess,err :=session.Start(opt, w, req)
+```
+
 
 ### 安装
 

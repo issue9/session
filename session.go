@@ -24,28 +24,35 @@ type Session struct {
 	options *Options
 }
 
-// 返回当前request的Session实例。
-func NewSession(opt *Options, w http.ResponseWriter, req *http.Request) (*Session, error) {
-	sess := &Session{
-		id:      "",
-		items:   make(map[interface{}]interface{}, 1),
+func NewSession(sessID string, items map[interface{}]interface{}, opt *Options) *Session {
+	return &Session{
+		id:      sessID,
+		items:   items,
 		options: opt,
 	}
+}
 
-	// 获取sessionid的值
-	cookie, err := req.Cookie(sess.options.cookie.Name)
+// 返回当前request的Session实例。
+func Start(opt *Options, w http.ResponseWriter, req *http.Request) (*Session, error) {
+	var sessID string
+	var err error
+	cookie, err := req.Cookie(opt.cookie.Name)
 	if err != nil || cookie.Value == "" { // 不存在，新建一个sessionid
-		sess.id, err = sessionID()
+		sessID, err = sessionID()
+		if err != nil {
+			return nil, err
+		}
 	} else {
-		sess.id, err = url.QueryUnescape(cookie.Value)
+		sessID, err = url.QueryUnescape(cookie.Value)
 	}
 
 	if err != nil {
 		return nil, err
 	}
 
-	opt.setCookie(w, sess.id, opt.lifetime)
-	return sess, nil
+	opt.setCookie(w, sessID, opt.lifetime)
+
+	return opt.store.Get(sessID)
 }
 
 // 获取指定键名对应的值，found表示该值是否存在。
@@ -91,6 +98,7 @@ func (sess *Session) ID() string {
 	return sess.id
 }
 
+// 释放当前的Session空间。
 func (sess *Session) Free(w http.ResponseWriter, req *http.Request) error {
 	if err := sess.options.store.Delete(sess); err != nil {
 		return err

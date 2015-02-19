@@ -4,10 +4,13 @@
 
 package session
 
+// Session的存储接口。
 type Store interface {
+	// 删除指定的Session，若是存在的话。
+	// 若Session不存在，则不发生任何事情。
 	Delete(sess *Session) error
 
-	// 获取指定ID的值
+	// 获取指定ID的Session实例。若不存在，则创建一个新的。
 	Get(sid string) (*Session, error)
 
 	// 将Session中的值保存到当前的实例中
