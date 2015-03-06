@@ -19,6 +19,7 @@ type Store interface {
 	Save(sessID string, data map[interface{}]interface{}) error
 
 	// 回收超过时间的数据。
+	// maxAge单位为秒。
 	GC(maxAge int) error
 
 	// 释放整个Store存储的内容，之后对Store的操作都将是未定义的。

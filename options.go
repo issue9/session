@@ -19,13 +19,13 @@ import (
 // 目前sessionid保存于cookie中，cookie的设置都是通过Options完成的。
 type Options struct {
 	store    Store
-	lifetime int // 生存周期。
+	lifetime int // 生存周期，单位为秒。
 	ticker   *time.Ticker
 	cookie   *http.Cookie
 }
 
 // 声明一个新的Options实例。
-// store：该实例对应的Store接口；lifetime：Session的生存周期；
+// store：该实例对应的Store接口；lifetime：Session的生存周期，单位为秒；
 func NewOptions(store Store, lifetime int, sessionIDName, path, domain string, secure bool) *Options {
 	ticker := time.NewTicker(time.Duration(lifetime) * time.Second)
 	go func() {
