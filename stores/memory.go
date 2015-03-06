@@ -21,6 +21,7 @@ type memory struct {
 	items map[string]*memSession
 }
 
+// 返回一个实现session.Store接口的内存存储器。
 func NewMemory() *memory {
 	return &memory{
 		items: map[string]*memSession{},
@@ -62,16 +63,17 @@ func (mem *memory) Save(sessID string, items map[interface{}]interface{}) error 
 
 // session.Store.GC()
 func (mem *memory) GC(maxAge int) error {
-	d := time.Now().Add(time.Duration(maxAge))
+	d := time.Now().Add(-time.Second * time.Duration(maxAge))
 
 	for k, v := range mem.items {
-		if v.accessed.Before(d) { // 过期，则删除
+		if v.accessed.Before(d) { // v.accessed < (time.Now() - maxAge)
 			delete(mem.items, k)
 		}
 	}
 	return nil
 }
 
+// session.Store.Free()
 func (mem *memory) Free() error {
 	mem.items = nil
 	return nil
