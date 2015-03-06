@@ -37,10 +37,10 @@ func TestMemory(t *testing.T) {
 	a.NotError(store.Save("testData1", testData1))
 	a.Equal(1, len(store.items))
 
-	// 删除一个不存在的数据，不应该发生错误
+	// Delete,删除一个不存在的数据，不应该发生错误
 	a.NotError(store.Delete("non"))
 
-	// 删除添加的数据
+	// Delete,删除添加的数据
 	a.NotError(store.Delete("testData1"))
 	a.Equal(0, len(store.items))
 
@@ -50,10 +50,14 @@ func TestMemory(t *testing.T) {
 	a.NotError(store.Save("testData2", testData2))
 	a.Equal(2, len(store.items))
 
-	// 测试Get
+	// 测试正常状态的Get
 	mapped, err := store.Get("testData1")
 	a.NotError(err).NotNil(mapped)
 	a.Equal(mapped, testData1)
+
+	// 测试Get()一个不存在的数据。
+	mapped, err = store.Get("non")
+	a.NotError(err).Equal(0, len(mapped))
 
 	// GC
 	store.GC(2) // 生存时间为2秒

@@ -2,7 +2,6 @@
 // Use of this source code is governed by a MIT
 // license that can be found in the LICENSE file.
 
-// session的内存存储模式
 package stores
 
 import (
@@ -22,6 +21,9 @@ type memory struct {
 }
 
 // 返回一个实现session.Store接口的内存存储器。
+//
+// 内存存储器是不稳定的，随着程序中止或是实例被销毁，
+// 相关的session数据也会随之销毁。
 func NewMemory() *memory {
 	return &memory{
 		items: map[string]*memSession{},
