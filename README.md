@@ -2,11 +2,12 @@ session [![Build Status](https://travis-ci.org/issue9/session.svg?branch=master)
 ======
 
 ```go
-memStore := stores.NewMemory()
-opt := session.NewOptions(memStore,...)
+opt := session.NewOptions(stores.NewMemory(), ...)
 
 // 在每一个Handler中调用Start()开始一个Session操作。
 sess,err :=session.Start(opt, w, req)
+
+opt.Close()
 ```
 
 

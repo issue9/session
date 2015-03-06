@@ -5,13 +5,8 @@
 package session
 
 import (
-	"crypto/md5"
-	"crypto/rand"
-	"encoding/hex"
 	"errors"
-	"io"
 	"net/http"
-	"net/url"
 	"sync"
 )
 
@@ -19,40 +14,30 @@ import (
 type Session struct {
 	sync.Mutex
 
+	options *Options
 	id      string
 	items   map[interface{}]interface{}
-	options *Options
-}
-
-func NewSession(sessID string, items map[interface{}]interface{}, opt *Options) *Session {
-	return &Session{
-		id:      sessID,
-		items:   items,
-		options: opt,
-	}
 }
 
 // 返回当前request的Session实例。
 func Start(opt *Options, w http.ResponseWriter, req *http.Request) (*Session, error) {
-	var sessID string
-	var err error
-	cookie, err := req.Cookie(opt.cookie.Name)
-	if err != nil || cookie.Value == "" { // 不存在，新建一个sessionid
-		sessID, err = sessionID()
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		sessID, err = url.QueryUnescape(cookie.Value)
-	}
-
+	sessID, err := opt.getSessionID(req)
 	if err != nil {
 		return nil, err
 	}
 
 	opt.setCookie(w, sessID, opt.lifetime)
 
-	return opt.store.Get(sessID)
+	items, err := opt.store.Get(sessID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Session{
+		options: opt,
+		id:      sessID,
+		items:   items,
+	}, nil
 }
 
 // 获取指定键名对应的值，found表示该值是否存在。
@@ -98,30 +83,37 @@ func (sess *Session) ID() string {
 	return sess.id
 }
 
-// 释放当前的Session空间。
-func (sess *Session) Free(w http.ResponseWriter, req *http.Request) error {
-	if err := sess.options.store.Delete(sess); err != nil {
+// 关闭当前的Session，相当于按顺序执行Session.Save()和Session.Free()。
+func (sess *Session) Close(w http.ResponseWriter, req *http.Request) error {
+	if err := sess.Save(w, req); err != nil {
 		return err
 	}
 
+	return sess.Free(w, req)
+}
+
+// 释放当前的Session空间，但依然存在于Store中。
+// 之后Session.Get等操作数据的函数将不在可用。
+// 若需要同时从Store中去除，请执行Store.Delete()方法。
+func (sess *Session) Free(w http.ResponseWriter, req *http.Request) error {
+	sess.Lock()
+	defer sess.Unlock()
+
 	sess.options.setCookie(w, sess.ID(), -1)
+
+	// 清空数据。
+	sess.items = nil
+	sess.options = nil
+
 	return nil
 }
 
-// 保存当前的Session值到Options.store中。
+// 保存当前的Session值到Store中。
+// Session中的数据依然存在，可以继续使用Get()等函数获取数据。
 func (sess *Session) Save(w http.ResponseWriter, req *http.Request) error {
-	return sess.options.store.Save(sess)
-}
-
-// 产生一个唯一的SessionID
-func sessionID() (string, error) {
-	ret := make([]byte, 64)
-	n, err := io.ReadFull(rand.Reader, ret)
-	if n == 0 {
-		return "", errors.New("未读取到随机数")
+	if sess.items == nil {
+		return errors.New("数据已经被释放。")
 	}
 
-	h := md5.New()
-	h.Write(ret)
-	return hex.EncodeToString(h.Sum(nil)), err
+	return sess.options.store.Save(sess.ID(), sess.items)
 }

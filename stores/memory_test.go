@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT
 // license that can be found in the LICENSE file.
 
-package memory
+package stores
 
 import (
 	"io/ioutil"
@@ -13,6 +13,8 @@ import (
 	"github.com/issue9/assert"
 	sess "github.com/issue9/session"
 )
+
+var _ sess.Store = &memory{}
 
 func hello(a *assert.Assertion, w http.ResponseWriter) {
 	n, err := w.Write([]byte("hello world"))

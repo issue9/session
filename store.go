@@ -5,14 +5,22 @@
 package session
 
 // Session的存储接口。
+//
+// 不能将一个Store实例与多个Options实例进行关联。
+// 否则可能会造成Session数据相互覆盖的情况。
 type Store interface {
-	// 删除指定的Session，若是存在的话。
-	// 若Session不存在，则不发生任何事情。
-	Delete(sess *Session) error
+	// 从Store中删除指定sessionid的数据。
+	Delete(sessID string) error
 
-	// 获取指定ID的Session实例。若不存在，则创建一个新的。
-	Get(sid string) (*Session, error)
+	// 获取与sessID关联的数据，若不存在，则返回空的map值。
+	Get(sessID string) (map[interface{}]interface{}, error)
 
-	// 将Session中的值保存到当前的实例中
-	Save(*Session) error
+	// 将data与sessID相关联，并保存到当前Store实例中。
+	Save(sessID string, data map[interface{}]interface{}) error
+
+	// 回收超过时间的数据。
+	GC(maxAge int) error
+
+	// 释放整个Store存储的内容，之后对Store的操作都将是未定义的。
+	Free() error
 }

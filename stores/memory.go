@@ -3,92 +3,76 @@
 // license that can be found in the LICENSE file.
 
 // session的内存存储模式
-package memory
+package stores
 
 import (
 	"sync"
 	"time"
-
-	"github.com/issue9/session"
 )
 
-// implement session.Store
-type store struct {
+type memSession struct {
+	accessed time.Time
+	items    map[interface{}]interface{}
+}
+
+type memory struct {
 	sync.Mutex
-	sessions map[string]*session.Session
+
+	items map[string]*memSession
 }
 
-var _ session.Store = &store{}
-
-func New() *store {
-	return &store{
-		sessions: make(map[string]*session.Session),
+func NewMemory() *memory {
+	return &memory{
+		items: map[string]*memSession{},
 	}
 }
 
-// implement session.Store.Get()
-func (s *store) Get(sid string) (*session.Session, error) {
-	s.Lock()
-	defer s.Unlock()
+// session.Store.Delete()
+func (mem *memory) Delete(sessID string) error {
+	mem.Lock()
+	defer mem.Unlock()
 
-	ret, found := s.sessions[sid]
-	if found {
-		return ret, nil
+	delete(mem.items, sessID)
+	return nil
+}
+
+// session.Store.Get()
+func (mem *memory) Get(sessID string) (map[interface{}]interface{}, error) {
+	mem.Lock()
+	defer mem.Unlock()
+
+	if item, found := mem.items[sessID]; found {
+		return item.items, nil
 	}
 
-	/* 声明新的session实例 */
-	ret = session.NewSession(sid, make(map[interface{}]interface{}), s)
-
-	s.sessions[sid] = ret
-	return ret, nil
+	return make(map[interface{}]interface{}, 0), nil
 }
 
-// implement session.Store.Save()
-func (s *store) Save(sess *session.Session) error {
-	// 本身就在内存中，无需多做什么操作
-	return nil
-}
+// session.Store.Save()
+func (mem *memory) Save(sessID string, items map[interface{}]interface{}) error {
+	mem.Lock()
+	defer mem.Unlock()
 
-// implement session.Store.Delete()
-func (s *store) Delete(sid string) error {
-	s.Lock()
-	defer s.Unlock()
-
-	sess, found := s.sessions[sid]
-	if !found {
-		return nil
+	mem.items[sessID] = &memSession{
+		accessed: time.Now(),
+		items:    items,
 	}
-
-	session.FreeSession(sess)
 	return nil
 }
 
-// implement session.Store.Release()
-func (s *store) Release(sess *session.Session) error {
-	return nil
-}
+// session.Store.GC()
+func (mem *memory) GC(maxAge int) error {
+	d := time.Now().Add(time.Duration(maxAge))
 
-// implement session.Store.GC()
-func (s *store) GC(duration int) {
-	s.Lock()
-	defer s.Unlock()
-
-	t := time.Now().Unix() - int64(duration) // 过期时间
-	for k, v := range s.sessions {
-		if session.SessionAccessed(v).Unix() < t {
-			s.Delete(k)
+	for k, v := range mem.items {
+		if v.accessed.Before(d) { // 过期，则删除
+			delete(mem.items, k)
 		}
 	}
+	return nil
 }
 
-// implement session.Store.Free()
-func (s *store) Free() {
-	s.Lock()
-	defer s.Unlock()
-
-	for _, v := range s.sessions {
-		session.FreeSession(v)
-	}
-
-	s.sessions = nil
+func (mem *memory) Free() error {
+	mem.items = nil
+	return nil
 }
