@@ -10,7 +10,7 @@ import (
 	"sync"
 )
 
-// Session操作接口
+// Session操作接口。
 type Session struct {
 	sync.Mutex
 
@@ -19,7 +19,8 @@ type Session struct {
 	items   map[interface{}]interface{}
 }
 
-// 返回当前request的Session实例。
+// 当然也可以把获取的Session实例保存到Context等实例中，方便之后获取。
+// 在一个Session中，不能多次调用Start()。
 func Start(opt *Options, w http.ResponseWriter, req *http.Request) (*Session, error) {
 	sessID, err := opt.getSessionID(req)
 	if err != nil {

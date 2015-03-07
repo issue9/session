@@ -25,7 +25,11 @@ type Options struct {
 }
 
 // 声明一个新的Options实例。
-// store：该实例对应的Store接口；lifetime：Session的生存周期，单位为秒；
+//
+// store：该实例对应的Store接口，同时还会开始执行store.GC()；
+// lifetime：Session的生存周期，单位为秒；
+// sessionIDName sessionid在cookie中的名称；
+// path,domain,secure也分别对应cookie中相应的值。
 func NewOptions(store Store, lifetime int, sessionIDName, path, domain string, secure bool) *Options {
 	ticker := time.NewTicker(time.Duration(lifetime) * time.Second)
 	go func() {
@@ -81,7 +85,7 @@ func (opt *Options) getSessionID(req *http.Request) (string, error) {
 	return hex.EncodeToString(h.Sum(nil)), err
 }
 
-// 关闭Options及释放与之关联的Store
+// 关闭Options及释放与之关联的Store，也会正常关闭Store.GC()的goroutinue。
 func (opt *Options) Close() error {
 	opt.ticker.Stop()
 	return opt.store.Free()

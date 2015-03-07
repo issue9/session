@@ -5,24 +5,12 @@
 package session
 
 import (
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/issue9/assert"
 )
-
-// 检测以下变量是否相等：
-// resp.StatusCode == statusCode
-// resp.Body == context
-func check(a *assert.Assertion, resp *http.Response, statusCode int, context string) {
-	body, err := ioutil.ReadAll(resp.Body)
-	a.NotError(err).NotNil(body)
-
-	a.Equal(resp.StatusCode, statusCode)
-	a.Equal(string(body), context)
-}
 
 // 测试Session的存储功能
 func TestSessionAccess(t *testing.T) {
@@ -39,6 +27,11 @@ func TestSessionAccess(t *testing.T) {
 	h := func(w http.ResponseWriter, req *http.Request) {
 		sess, err := Start(opt, w, req)
 		a.NotError(err).NotNil(sess)
+
+		// 通过多次调用Start()，返回的数据应该是不相同的。
+		sess1, err := Start(opt, w, req)
+		a.NotError(err).NotNil(sess1)
+		a.NotEqual(sess1, sess)
 
 		// 不存在的值
 		val, found := sess.Get("nil")
