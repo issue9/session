@@ -13,7 +13,7 @@ import (
 )
 
 // 测试Session的存储功能
-func TestSessionAccess(t *testing.T) {
+func TestSessionAccess1(t *testing.T) {
 	a := assert.New(t)
 
 	// 声明Options实例。
@@ -72,6 +72,51 @@ func TestSessionAccess(t *testing.T) {
 		item, found := store.items[sess.ID()]
 		a.True(found).NotNil(item)
 		a.Equal(0, len(sess.items)) // Close()，sess.items数据将被清空。
+	}
+	srv := httptest.NewServer(http.HandlerFunc(h))
+	a.NotNil(srv)
+	defer srv.Close()
+
+	response, err := http.Get(srv.URL)
+	a.NotError(err).NotNil(response)
+}
+
+// 测试多个store同时使用
+func TestSessionAccess2(t *testing.T) {
+	a := assert.New(t)
+
+	s1 := newTestStore()
+	s2 := newTestStore()
+	opt1 := NewOptions(s1, 10, "gosession1", "/", "localhost", true)
+	opt2 := NewOptions(s2, 10, "gosession2", "/", "localhost", true)
+	defer opt1.Close()
+	defer opt2.Close()
+
+	h := func(w http.ResponseWriter, req *http.Request) {
+		sess1, err := Start(opt1, w, req)
+		a.NotError(err).NotNil(sess1)
+
+		sess2, err := Start(opt2, w, req)
+		a.NotError(err).NotNil(sess2)
+		a.NotEqual(sess1, sess2)
+
+		// 不存在的值
+		val, found := sess1.Get("nil")
+		a.False(found).Nil(val)
+		val, found = sess2.Get("nil")
+		a.False(found).Nil(val)
+
+		// 仅设置了sess1，sess2应该不存在该值
+		sess1.Set("1", 1)
+		a.True(sess1.Exists("1")).False(sess2.Exists("1"))
+
+		sess2.Set("2", 2)
+		a.False(sess1.Exists("2")).True(sess2.Exists("2"))
+
+		// 销毁Sess1，应该不影响sess2
+		sess1.Close(w, req)
+		a.False(sess1.Exists("1"))
+		a.True(sess2.Exists("2"))
 	}
 	srv := httptest.NewServer(http.HandlerFunc(h))
 	a.NotNil(srv)
