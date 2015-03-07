@@ -15,13 +15,13 @@
 //  opt := session.NewOptions(stores.NewMemory(), ...)
 //
 //  h := func(w http.ResponseWriter, req *http.Request) {
-//	    // 在每一个Handler中调用Start()开始一个Session操作。
-// 	    sess,err :=session.Start(opt, w, req)
-//	    defer sess.Close()
+//      // 在每一个Handler中调用Start()开始一个Session操作。
+//      sess,err :=session.Start(opt, w, req)
+//      defer sess.Close()
 //
-//	    sess.Get(...)
+//      sess.Get(...)
 //  }
-//	http.HandleFunc("/", h)
+//  http.HandleFunc("/", h)
 //  http.ListenAndServe(":8080")
 //
 //  // 服务结束后，记得释放Options实例。
@@ -32,17 +32,17 @@
 //  adminOpt := session.NewOptions(stores.NewFile(), ...)
 //
 //  frontHandler := func(w http.ResponseWriter, req *http.Request) {
-//	    sess,err :=session.Start(frontOpt, w, req)
-//	    defer sess.Close()
+//      sess,err :=session.Start(frontOpt, w, req)
+//      defer sess.Close()
 //
-//	    sess.Get(...)
+//      sess.Get(...)
 //  }
 //
 //  adminHandler := func(w http.ResponseWriter, req *http.Request) {
-//	    sess,err :=session.Start(adminOpt, w, req)
-//	    defer sess.Close()
+//      sess,err :=session.Start(adminOpt, w, req)
+//      defer sess.Close()
 //
-//	    sess.Get(...)
+//      sess.Get(...)
 //  }
 //
 //  http.HandleFunc("/front", frontHandler)
