@@ -4,9 +4,17 @@ session [![Build Status](https://travis-ci.org/issue9/session.svg?branch=master)
 ```go
 opt := session.NewOptions(stores.NewMemory(), ...)
 
-// 在每一个Handler中调用Start()开始一个Session操作。
-sess,err :=session.Start(opt, w, req)
+h := func(w http.ResponseWriter, req *http.Request) {
+    // 在每一个Handler中调用Start()开始一个Session操作。
+    sess,err :=session.Start(opt, w, req)
+    defer sess.Close()
 
+    sess.Get(...)
+}
+http.HandleFunc("/", h)
+http.ListenAndServe(":8080")
+
+// 服务结束后，记得释放Options实例。
 opt.Close()
 ```
 
