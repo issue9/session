@@ -66,7 +66,7 @@ func (opt *Options) setCookie(w http.ResponseWriter, sessid string, maxAge int) 
 	http.SetCookie(w, opt.cookie)
 }
 
-// 根据当前的req获取相应的sessionid
+// 从当前的req中获取sessionid，或是在不存在的情况下，返回一个新值。
 func (opt *Options) getSessionID(req *http.Request) (string, error) {
 	cookie, err := req.Cookie(opt.cookie.Name)
 	if err == nil && cookie.Value != "" {
