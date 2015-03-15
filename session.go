@@ -14,22 +14,20 @@ import (
 type Session struct {
 	sync.Mutex
 
-	options *Options
+	options Options
 	id      string
 	items   map[interface{}]interface{}
 }
 
 // 当然也可以把获取的Session实例保存到Context等实例中，方便之后获取。
 // 在一个Session中，不能多次调用Start()。
-func Start(opt *Options, w http.ResponseWriter, req *http.Request) (*Session, error) {
-	sessID, err := opt.getSessionID(req)
+func Start(opt Options, w http.ResponseWriter, req *http.Request) (*Session, error) {
+	sessID, err := opt.Init(w, req)
 	if err != nil {
 		return nil, err
 	}
 
-	opt.setCookie(w, sessID, opt.lifetime)
-
-	items, err := opt.store.Get(sessID)
+	items, err := opt.Store().Get(sessID)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +98,7 @@ func (sess *Session) Free(w http.ResponseWriter, req *http.Request) error {
 	sess.Lock()
 	defer sess.Unlock()
 
-	sess.options.setCookie(w, sess.ID(), -1)
+	sess.options.Delete(w, req)
 
 	// 清空数据。
 	sess.items = nil
@@ -116,5 +114,5 @@ func (sess *Session) Save(w http.ResponseWriter, req *http.Request) error {
 		return errors.New("数据已经被释放。")
 	}
 
-	return sess.options.store.Save(sess.ID(), sess.items)
+	return sess.options.Store().Save(sess.ID(), sess.items)
 }

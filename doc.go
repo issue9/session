@@ -12,7 +12,7 @@
 // 该包实现了一些常用的Store。
 //
 // 以下是一个简单的session操作示例：
-//  opt := session.NewOptions(stores.NewMemory(), ...)
+//  opt := options.NewCookie(stores.NewMemory(), ...)
 //
 //  h := func(w http.ResponseWriter, req *http.Request) {
 //      // 在每一个Handler中调用Start()开始一个Session操作。
@@ -54,4 +54,4 @@
 package session
 
 // 当前库的版本号
-const Version = "0.5.6.150313"
+const Version = "0.6.7.150314"

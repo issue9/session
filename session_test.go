@@ -18,7 +18,7 @@ func TestSessionAccess1(t *testing.T) {
 
 	// 声明Options实例。
 	store := newTestStore()
-	opt := NewOptions(store, 10, "gosession", "/", "localhost", true)
+	opt := newTestOptions(store, 10, "gosession")
 	a.NotNil(opt)
 	defer func() {
 		a.NotError(opt.Close())
@@ -87,8 +87,8 @@ func TestSessionAccess2(t *testing.T) {
 
 	s1 := newTestStore()
 	s2 := newTestStore()
-	opt1 := NewOptions(s1, 10, "gosession1", "/", "localhost", true)
-	opt2 := NewOptions(s2, 10, "gosession2", "/", "localhost", true)
+	opt1 := newTestOptions(s1, 10, "gosession1")
+	opt2 := newTestOptions(s2, 10, "gosession2")
 	defer opt1.Close()
 	defer opt2.Close()
 

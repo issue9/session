@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT
 // license that can be found in the LICENSE file.
 
-package session
+package options
 
 import (
 	"net/http"
@@ -11,18 +11,22 @@ import (
 	"time"
 
 	"github.com/issue9/assert"
+	"github.com/issue9/session"
+	"github.com/issue9/session/stores"
 )
 
-func newOptions(a *assert.Assertion) *Options {
-	opt := NewOptions(newTestStore(), 10, "gosession", "/", "localhost", false)
+var _ session.Options = &cookie{}
+
+func newCookie(a *assert.Assertion) session.Options {
+	opt := NewCookie(stores.NewMemory(), 10, "gosession", "/", "localhost", false)
 	a.NotNil(opt)
 	return opt
 }
 
-func TestOptions_setCookie(t *testing.T) {
+func TestCookie_Init(t *testing.T) {
 	a := assert.New(t)
 
-	opt := newOptions(a)
+	opt := newCookie(a)
 	defer opt.Close()
 
 	// 该handler通过action参数确定是设置还是删除cookie
@@ -86,11 +90,11 @@ func TestOptions_setCookie(t *testing.T) {
 	a.True(cookie.MaxAge == -1, "cookie.MaxAge==-1不成立,cookie.MaxAge的值为:%v", cookie.MaxAge)
 }
 
-// 测试Options.getSessionID，是否能根据request还原相应的sessionid。
-func TestOptions_getSessionID1(t *testing.T) {
+// 测试Cookie.getSessionID，是否能根据request还原相应的sessionid。
+func TestCookie_getSessionID1(t *testing.T) {
 	a := assert.New(t)
 
-	opt := newOptions(a)
+	opt := newCookie(a)
 	defer opt.Close()
 
 	var sid string // 记录相关的sessionid值。
@@ -130,43 +134,19 @@ func TestOptions_getSessionID1(t *testing.T) {
 	a.NotError(err)
 }
 
-// 测试Options.getSessionID函数中随机数产生是否正常。
-func TestOptions_getSessionID2(t *testing.T) {
-	a := assert.New(t)
-
-	opt := newOptions(a)
-	defer opt.Close()
-
-	req, err := http.NewRequest("GET", "/", nil)
-	a.NotError(err).NotNil(req)
-
-	m := make(map[string]interface{}, 0)
-
-	// 随机产生几个字符串，看是否有可能重复
-	for i := 0; i < 10000; i++ {
-		sid, err := opt.getSessionID(req)
-		a.Nil(err)
-
-		_, found := m[sid]
-		a.False(found)
-
-		m[sid] = nil
-	}
-}
-
 // 测试opt是否会正确执行sotre.GC()。
-func TestOptions_GC(t *testing.T) {
+func TestCookie_GC(t *testing.T) {
 	a := assert.New(t)
 
 	store := newTestStore()
-	opt := NewOptions(store, 3, "gosession", "/", "localhost", false)
+	opt := NewCookie(store, 3, "gosession", "/", "localhost", false)
 	defer opt.Close()
 
 	h := func(w http.ResponseWriter, req *http.Request) {
 		a.NotError(req.ParseForm())
 		switch req.Form["action"][0] {
 		case "1": // 第一次访问
-			sess, err := Start(opt, w, req)
+			sess, err := session.Start(opt, w, req)
 			a.NotError(err).NotNil(sess)
 			a.Equal(0, len(store.items)) // 保存之前为长度0
 			sess.Save(w, req)

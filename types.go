@@ -4,6 +4,10 @@
 
 package session
 
+import (
+	"net/http"
+)
+
 // Session的存储接口。
 //
 // 不能将一个Store实例与多个Options实例进行关联。
@@ -24,4 +28,19 @@ type Store interface {
 
 	// 释放整个Store存储的内容，之后对Store的操作都将是未定义的。
 	Free() error
+}
+
+// session的配置项
+type Options interface {
+	// 返回与当前Options关联的Store实例
+	Store() Store
+
+	// 初始化，从req中获取sessionid的值。或当sessionid不存在时，产生一个新值。
+	Init(w http.ResponseWriter, req *http.Request) (sessID string, err error)
+
+	// 删除当前Options保存的sessionid值。
+	Delete(w http.ResponseWriter, req *http.Request) error
+
+	// 关闭Cookie及释放与之关联的Store，也会正常关闭Store.GC()的goroutinue。
+	Close() error
 }
