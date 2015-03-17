@@ -85,4 +85,6 @@ func TestMemory_StartGC(t *testing.T) {
 	a.Equal(2, len(store.items))
 	time.Sleep(time.Second) // 再延时1秒，数据应该没了
 	a.Equal(0, len(store.items))
+
+	a.NotError(store.Close())
 }

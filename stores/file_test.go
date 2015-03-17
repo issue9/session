@@ -75,4 +75,6 @@ func TestFile_StartGC(t *testing.T) {
 	time.Sleep(time.Second) // 再延时1秒，数据应该没了
 	a.FileNotExists(store.dir + "testData1")
 	a.FileNotExists(store.dir + "testData2")
+
+	a.NotError(store.Close())
 }

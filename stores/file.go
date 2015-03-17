@@ -31,20 +31,18 @@ type file struct {
 func NewFile(dir string, lifetime int, log *log.Logger) (*file, error) {
 	stat, err := os.Stat(dir)
 	if err != nil {
-		if os.IsNotExist(err) {
-			os.MkdirAll(dir, mode)
-		} else {
+		if !os.IsNotExist(err) {
 			return nil, err
 		}
 
-		// 无法创建该目录
-		if stat, err = os.Stat(dir); err != nil && os.IsNotExist(err) {
+		// 尝试创建目录
+		if err = os.MkdirAll(dir, mode); err != nil {
 			return nil, err
 		}
 	}
 
 	if !stat.IsDir() {
-		return nil, fmt.Errorf("%v存在，但不是一个有效的路径。", dir)
+		return nil, fmt.Errorf("[%v]存在，但不是一个有效的路径。", dir)
 	}
 
 	return &file{
