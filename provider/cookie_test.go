@@ -2,46 +2,43 @@
 // Use of this source code is governed by a MIT
 // license that can be found in the LICENSE file.
 
-package options
+package providers
 
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
-	"time"
 
 	"github.com/issue9/assert"
 	"github.com/issue9/session"
-	"github.com/issue9/session/stores"
 )
 
-var _ session.Options = &cookie{}
+var _ session.Provider = &cookie{}
 
-func newCookie(a *assert.Assertion) session.Options {
-	opt := NewCookie(stores.NewMemory(), 10, "gosession", "/", "localhost", false)
-	a.NotNil(opt)
-	return opt
+func newCookie(a *assert.Assertion) session.Provider {
+	provider := NewCookie(11, "gosession", "/", "localhost", false)
+	a.NotNil(provider)
+	return provider
 }
 
-func TestCookie_Init(t *testing.T) {
+func testCookie_Init(t *testing.T) {
 	a := assert.New(t)
-
-	opt := newCookie(a)
-	defer opt.Close()
+	//provider := newCookie(a)
 
 	// 该handler通过action参数确定是设置还是删除cookie
 	setCookieHandler := func(w http.ResponseWriter, req *http.Request) {
 		a.NotError(req.ParseForm())
-		maxAge := -1
+		//maxAge := -1
 		switch req.Form["action"][0] {
 		case "set":
-			maxAge = 10
+			//maxAge = 10
 		case "unset":
-			maxAge = -1
+			//maxAge = -1
 		default:
 			t.Errorf("无效的action值:%v", req.Form["action"][0])
 		}
-		opt.setCookie(w, "sessionIDValue", maxAge)
+		//provider.setCookie(w, "sessionIDValue", maxAge)
 		w.WriteHeader(200)
 		w.Write([]byte("OK"))
 	}
@@ -91,11 +88,10 @@ func TestCookie_Init(t *testing.T) {
 }
 
 // 测试Cookie.getSessionID，是否能根据request还原相应的sessionid。
-func TestCookie_getSessionID1(t *testing.T) {
+func TestCookie_Get(t *testing.T) {
 	a := assert.New(t)
 
-	opt := newCookie(a)
-	defer opt.Close()
+	provider := newCookie(a)
 
 	var sid string // 记录相关的sessionid值。
 	var err error
@@ -103,13 +99,14 @@ func TestCookie_getSessionID1(t *testing.T) {
 		a.NotError(req.ParseForm())
 		switch req.Form["action"][0] {
 		case "1": // 第一次访问，设置sessionID
-			sid, err = opt.getSessionID(req)
+			sid, err = provider.Get(w, req)
 			a.NotError(err).NotEmpty(sid)
-
-			opt.setCookie(w, sid, 10)
 		case "2": // 第二次访问，验证sessionID
-			sessID, err := opt.getSessionID(req)
-			a.NotError(err).Equal(sessID, sid)
+			sessID, err := provider.Get(w, req)
+			a.NotError(err).Equal(sessID, sid, "action=2:sessID[%v] != sid[%v]", sessID, sid)
+			sid = sessID
+		case "3":
+			provider.Delete(w, req)
 		default:
 			t.Errorf("无效的action值:%v", req.Form["action"][0])
 		}
@@ -132,44 +129,9 @@ func TestCookie_getSessionID1(t *testing.T) {
 	client := &http.Client{}
 	_, err = client.Do(r)
 	a.NotError(err)
-}
 
-// 测试opt是否会正确执行sotre.GC()。
-func TestCookie_GC(t *testing.T) {
-	a := assert.New(t)
-
-	store := newTestStore()
-	opt := NewCookie(store, 3, "gosession", "/", "localhost", false)
-	defer opt.Close()
-
-	h := func(w http.ResponseWriter, req *http.Request) {
-		a.NotError(req.ParseForm())
-		switch req.Form["action"][0] {
-		case "1": // 第一次访问
-			sess, err := session.Start(opt, w, req)
-			a.NotError(err).NotNil(sess)
-			a.Equal(0, len(store.items)) // 保存之前为长度0
-			sess.Save(w, req)
-			a.Equal(1, len(store.items)) // 保存之后长度为1
-		case "2": // 第二次访问，未超时。
-			a.Equal(1, len(store.items))
-		case "3": // 第二次访问，超时了，store被清空。
-			a.Equal(0, len(store.items))
-		default:
-			t.Errorf("无效的action值:%v", req.Form["action"][0])
-		}
-		w.WriteHeader(200)
-		w.Write([]byte("OK"))
-	}
-	srv := httptest.NewServer(http.HandlerFunc(h))
-	a.NotNil(srv)
-	defer srv.Close()
-
-	resp, err := http.Get(srv.URL + "?action=1")
-	a.NotError(err).NotNil(resp)
-	resp, err = http.Get(srv.URL + "?action=2")
-	a.NotError(err).NotNil(resp)
-	time.Sleep(time.Second * 3) // 延时3秒
+	// ?action=3，第三次访问，清空cookie。
 	resp, err = http.Get(srv.URL + "?action=3")
 	a.NotError(err).NotNil(resp)
+	a.True(strings.Index(resp.Header.Get("Set-Cookie"), "Max-Age=0") >= 0)
 }

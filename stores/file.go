@@ -9,6 +9,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"time"
 )
@@ -17,13 +18,17 @@ import (
 const mode os.FileMode = 0600
 
 type file struct {
-	dir string // session保存的路径
+	dir      string // session保存的路径
+	ticker   *time.Ticker
+	lifetime time.Duration
+	log      *log.Logger
 }
 
 // 声明一个实现session.Store接口的文件存储器，
 // 在该存储器下，每个session都将以单独的文件存储。
 // dir为session文件的存放路径。创建的文件权限默认为0600。
-func NewFile(dir string) (*file, error) {
+// log用户记录在GC过程中发生的错误，若不需要这些，则指定为nil即可。
+func NewFile(dir string, lifetime int, log *log.Logger) (*file, error) {
 	stat, err := os.Stat(dir)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -43,7 +48,9 @@ func NewFile(dir string) (*file, error) {
 	}
 
 	return &file{
-		dir: dir + string(os.PathSeparator),
+		dir:      dir + string(os.PathSeparator),
+		lifetime: time.Second * time.Duration(lifetime),
+		log:      log,
 	}, nil
 }
 
@@ -110,9 +117,8 @@ func (f *file) Save(sessID string, data map[interface{}]interface{}) error {
 	return err
 }
 
-// session.Store.GC()
-func (f *file) GC(maxAge int) error {
-	d := time.Now().Add(-time.Second * time.Duration(maxAge))
+func (f *file) gc() error {
+	d := time.Now().Add(-f.lifetime)
 
 	fs, err := ioutil.ReadDir(f.dir)
 	if err != nil {
@@ -136,8 +142,24 @@ func (f *file) GC(maxAge int) error {
 	return nil
 }
 
-// session.Store.Free()
-func (f *file) Free() error {
+// session.Store.StartGC()
+func (f *file) StartGC() {
+	f.ticker = time.NewTicker(f.lifetime)
+	go func() {
+		for range f.ticker.C {
+			if err := f.gc(); err != nil && f.log != nil {
+				f.log.Panicln(err.Error())
+			}
+		}
+	}()
+}
+
+// session.Store.Close()
+func (f *file) Close() error {
+	if f.ticker != nil {
+		f.ticker.Stop()
+	}
+
 	fs, err := ioutil.ReadDir(f.dir)
 	if err != nil {
 		return err

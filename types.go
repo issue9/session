@@ -22,25 +22,19 @@ type Store interface {
 	// 将data与sessID相关联，并保存到当前Store实例中。
 	Save(sessID string, data map[interface{}]interface{}) error
 
-	// 回收超过时间的数据。
-	// maxAge单位为秒。
-	GC(maxAge int) error
+	// 启用GC。
+	StartGC()
 
-	// 释放整个Store存储的内容，之后对Store的操作都将是未定义的。
-	Free() error
+	// 释放整个Store存储的内容及关闭所有的GC操作。
+	// 之后对Store的操作都将是未定义的。
+	Close() error
 }
 
-// session的配置项
-type Options interface {
-	// 返回与当前Options关联的Store实例
-	Store() Store
+// 提供sessionid。
+type Provider interface {
+	// 从req中获取sessionid的值。或当sessionid不存在时，产生一个新值。
+	Get(w http.ResponseWriter, req *http.Request) (sessID string, err error)
 
-	// 初始化，从req中获取sessionid的值。或当sessionid不存在时，产生一个新值。
-	Init(w http.ResponseWriter, req *http.Request) (sessID string, err error)
-
-	// 删除当前Options保存的sessionid值。
+	// 删除当前保存的sessionid值。
 	Delete(w http.ResponseWriter, req *http.Request) error
-
-	// 关闭Cookie及释放与之关联的Store，也会正常关闭Store.GC()的goroutinue。
-	Close() error
 }

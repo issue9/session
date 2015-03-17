@@ -14,7 +14,7 @@ import (
 func TestFile(t *testing.T) {
 	a := assert.New(t)
 
-	store, err := NewFile("./testdata")
+	store, err := NewFile("./testdata", 2, nil)
 	a.NotError(err).NotNil(store)
 
 	// 添加一个数据
@@ -43,22 +43,36 @@ func TestFile(t *testing.T) {
 	mapped, err = store.Get("non")
 	a.NotError(err).Equal(0, len(mapped))
 
-	// GC
-	store.GC(2) // 生存时间为2秒
-	a.FileExists(store.dir + "testData1")
-	a.FileExists(store.dir + "testData2")
-	// 休眠两秒后，所有数据都应该已经过期。
-	time.Sleep(time.Second * 2)
-	store.GC(2)
-	a.FileNotExists(store.dir + "testData1")
-	a.FileNotExists(store.dir + "testData2")
-
 	// Free
 	a.NotError(store.Save("testData1", testData1))
 	a.NotError(store.Save("testData2", testData2))
 	a.FileExists(store.dir + "testData1")
 	a.FileExists(store.dir + "testData2")
-	a.NotError(store.Free())
+	a.NotError(store.Close())
+	a.FileNotExists(store.dir + "testData1")
+	a.FileNotExists(store.dir + "testData2")
+}
+
+func TestFile_StartGC(t *testing.T) {
+	a := assert.New(t)
+
+	// 2秒后开始执行GC
+	store, err := NewFile("./testdata", 2, nil)
+	a.NotError(err).NotNil(store)
+
+	// 添加两条数据
+	a.NotError(store.Save("testData1", testData1))
+	a.NotError(store.Save("testData2", testData2))
+	a.FileExists(store.dir + "testData1")
+	a.FileExists(store.dir + "testData2")
+
+	store.StartGC()
+	a.FileExists(store.dir + "testData1")
+	a.FileExists(store.dir + "testData2")
+	time.Sleep(time.Second) // 延时1秒，数据还在
+	a.FileExists(store.dir + "testData1")
+	a.FileExists(store.dir + "testData2")
+	time.Sleep(time.Second) // 再延时1秒，数据应该没了
 	a.FileNotExists(store.dir + "testData1")
 	a.FileNotExists(store.dir + "testData2")
 }

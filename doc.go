@@ -12,11 +12,11 @@
 // 该包实现了一些常用的Store。
 //
 // 以下是一个简单的session操作示例：
-//  opt := options.NewCookie(stores.NewMemory(), ...)
+//  mgr := session.New(stores.NewMemory(...), providers.NewCookie(...))
 //
 //  h := func(w http.ResponseWriter, req *http.Request) {
 //      // 在每一个Handler中调用Start()开始一个Session操作。
-//      sess,err :=session.Start(opt, w, req)
+//      sess,err :=mgr.Start( w, req)
 //      defer sess.Close()
 //
 //      sess.Get(...)
@@ -25,21 +25,21 @@
 //  http.ListenAndServe(":8080")
 //
 //  // 服务结束后，记得释放Options实例。
-//  opt.Close()
+//  mgr.Close()
 //
 // 也可以多个store同时使用：
-//  frontOpt := session.NewOptions(stores.NewMemory(), ...)
-//  adminOpt := session.NewOptions(stores.NewFile(), ...)
+//  frontMgr := session.New(stores.NewMemory(), providers.NewCookie())
+//  adminMgr := session.New(stores.NewFile(), provider.NewCookie())
 //
 //  frontHandler := func(w http.ResponseWriter, req *http.Request) {
-//      sess,err :=session.Start(frontOpt, w, req)
+//      sess,err :=frontMgr.Start(w, req)
 //      defer sess.Close()
 //
 //      sess.Get(...)
 //  }
 //
 //  adminHandler := func(w http.ResponseWriter, req *http.Request) {
-//      sess,err :=session.Start(adminOpt, w, req)
+//      sess,err :=adminMgr.Start(w, req)
 //      defer sess.Close()
 //
 //      sess.Get(...)
@@ -49,9 +49,9 @@
 //  http.HandleFunc("/admin", adminHandler)
 //  http.ListenAndServe(":88")
 //
-//  frontOpt.Close()
-//  adminOpt.Close()
+//  frontMgr.Close()
+//  adminMgr.Close()
 package session
 
 // 当前库的版本号
-const Version = "0.6.7.150314"
+const Version = "0.8.9.150317"

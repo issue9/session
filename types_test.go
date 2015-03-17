@@ -15,7 +15,8 @@ var _ Store = &testStore{}
 
 // 测试用的Store接口实现。
 type testStore struct {
-	items map[string]*testSession
+	items    map[string]*testSession
+	lifetime int
 }
 
 type testSession struct {
@@ -25,7 +26,8 @@ type testSession struct {
 
 func newTestStore() *testStore {
 	return &testStore{
-		items: map[string]*testSession{},
+		items:    map[string]*testSession{},
+		lifetime: 10,
 	}
 }
 
@@ -53,47 +55,35 @@ func (store *testStore) Save(sessID string, items map[interface{}]interface{}) e
 	return nil
 }
 
-// Store.GC()
-func (store *testStore) GC(maxAge int) error {
-	d := time.Now().Add(time.Duration(maxAge))
+// Store.StartGC()
+func (store *testStore) StartGC() {
+	d := time.Now().Add(time.Duration(store.lifetime))
 
 	for k, v := range store.items {
 		if v.accessed.Before(d) { // 过期，则删除
 			delete(store.items, k)
 		}
 	}
-	return nil
 }
 
-// Store.Free()
-func (store *testStore) Free() error {
+// Store.Close()
+func (store *testStore) Close() error {
 	store.items = nil
 	return nil
 }
 
-var _ Options = &testOptions{}
+var _ Provider = &testProvider{}
 
-// 测试用Options接口的实现。
-type testOptions struct {
-	store    Store
+// 测试用Manager接口的实现。
+type testProvider struct {
 	lifetime int // 生存周期，单位为秒。
-	ticker   *time.Ticker
 	cookie   *http.Cookie
 	count    int // 用于产生唯一ID
 }
 
-func newTestOptions(store Store, lifetime int, sessionIDName string) Options {
-	ticker := time.NewTicker(time.Duration(lifetime) * time.Second)
-	go func() {
-		for range ticker.C {
-			store.GC(lifetime)
-		}
-	}()
-
-	return &testOptions{
-		store:    store,
+func newTestManager(lifetime int, sessionIDName string) Provider {
+	return &testProvider{
 		lifetime: lifetime,
-		ticker:   ticker,
 		cookie: &http.Cookie{
 			Name:     sessionIDName,
 			Secure:   true,
@@ -104,41 +94,30 @@ func newTestOptions(store Store, lifetime int, sessionIDName string) Options {
 	}
 }
 
-// Options.Init()
-func (opt *testOptions) Init(w http.ResponseWriter, req *http.Request) (sessID string, err error) {
-	cookie, err := req.Cookie(opt.cookie.Name)
+// Manager.Get()
+func (mgr *testProvider) Get(w http.ResponseWriter, req *http.Request) (sessID string, err error) {
+	cookie, err := req.Cookie(mgr.cookie.Name)
 
 	if err != nil || len(cookie.Value) == 0 { // 不存在，产生新的
-		opt.count++
-		sessID = "gosessionid:" + strconv.Itoa(opt.count)
+		mgr.count++
+		sessID = "gosessionid:" + strconv.Itoa(mgr.count)
 	} else { // 从Cookie中获取sessionid值。
 		if sessID, err = url.QueryUnescape(cookie.Value); err != nil {
 			return sessID, err
 		}
 	}
 
-	opt.cookie.Value = url.QueryEscape(sessID)
-	opt.cookie.MaxAge = opt.lifetime
-	http.SetCookie(w, opt.cookie)
+	mgr.cookie.Value = url.QueryEscape(sessID)
+	mgr.cookie.MaxAge = mgr.lifetime
+	http.SetCookie(w, mgr.cookie)
 
 	return sessID, nil
 }
 
-// Options.Delete()
-func (opt *testOptions) Delete(w http.ResponseWriter, req *http.Request) error {
-	opt.cookie.MaxAge = -1
-	http.SetCookie(w, opt.cookie)
+// Manager.Delete()
+func (mgr *testProvider) Delete(w http.ResponseWriter, req *http.Request) error {
+	mgr.cookie.MaxAge = -1
+	http.SetCookie(w, mgr.cookie)
 
 	return nil
-}
-
-// Options.Store()
-func (opt *testOptions) Store() Store {
-	return opt.store
-}
-
-// 关闭Cookie及释放与之关联的Store，也会正常关闭Store.GC()的goroutinue。
-func (opt *testOptions) Close() error {
-	opt.ticker.Stop()
-	return opt.store.Free()
 }

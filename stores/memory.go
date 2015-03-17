@@ -17,16 +17,19 @@ type memSession struct {
 type memory struct {
 	sync.Mutex
 
-	items map[string]*memSession
+	items    map[string]*memSession
+	ticker   *time.Ticker
+	lifetime time.Duration
 }
 
 // 返回一个实现session.Store接口的内存存储器。
 //
 // 内存存储器是不稳定的，随着程序中止或是实例被销毁，
 // 相关的session数据也会随之销毁。
-func NewMemory() *memory {
+func NewMemory(lifetime int) *memory {
 	return &memory{
-		items: map[string]*memSession{},
+		lifetime: time.Second * time.Duration(lifetime),
+		items:    map[string]*memSession{},
 	}
 }
 
@@ -63,20 +66,32 @@ func (mem *memory) Save(sessID string, items map[interface{}]interface{}) error 
 	return nil
 }
 
-// session.Store.GC()
-func (mem *memory) GC(maxAge int) error {
-	d := time.Now().Add(-time.Second * time.Duration(maxAge))
+// session.Store.StartGC()
+func (mem *memory) StartGC() {
+	gc := func() {
+		d := time.Now().Add(-mem.lifetime)
 
-	for k, v := range mem.items {
-		if v.accessed.Before(d) { // v.accessed < (time.Now() - maxAge)
-			delete(mem.items, k)
+		for k, v := range mem.items {
+			if v.accessed.Before(d) { // v.accessed < (time.Now() - maxAge)
+				delete(mem.items, k)
+			}
 		}
 	}
-	return nil
+
+	mem.ticker = time.NewTicker(mem.lifetime)
+	go func() {
+		for range mem.ticker.C {
+			gc()
+		}
+	}()
 }
 
-// session.Store.Free()
-func (mem *memory) Free() error {
+// session.Store.Close()
+func (mem *memory) Close() error {
+	if mem.ticker != nil {
+		mem.ticker.Stop()
+	}
+
 	mem.items = nil
 	return nil
 }

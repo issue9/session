@@ -14,29 +14,9 @@ import (
 type Session struct {
 	sync.Mutex
 
-	options Options
+	manager *Manager
 	id      string
 	items   map[interface{}]interface{}
-}
-
-// 当然也可以把获取的Session实例保存到Context等实例中，方便之后获取。
-// 在一个Session中，不能多次调用Start()。
-func Start(opt Options, w http.ResponseWriter, req *http.Request) (*Session, error) {
-	sessID, err := opt.Init(w, req)
-	if err != nil {
-		return nil, err
-	}
-
-	items, err := opt.Store().Get(sessID)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Session{
-		options: opt,
-		id:      sessID,
-		items:   items,
-	}, nil
 }
 
 // 获取指定键名对应的值，found表示该值是否存在。
@@ -98,11 +78,11 @@ func (sess *Session) Free(w http.ResponseWriter, req *http.Request) error {
 	sess.Lock()
 	defer sess.Unlock()
 
-	sess.options.Delete(w, req)
+	sess.manager.provider.Delete(w, req)
 
 	// 清空数据。
 	sess.items = nil
-	sess.options = nil
+	sess.manager = nil
 
 	return nil
 }
@@ -114,5 +94,5 @@ func (sess *Session) Save(w http.ResponseWriter, req *http.Request) error {
 		return errors.New("数据已经被释放。")
 	}
 
-	return sess.options.Store().Save(sess.ID(), sess.items)
+	return sess.manager.store.Save(sess.ID(), sess.items)
 }

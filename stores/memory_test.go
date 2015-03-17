@@ -30,7 +30,7 @@ var (
 func TestMemory(t *testing.T) {
 	a := assert.New(t)
 
-	store := NewMemory()
+	store := NewMemory(100)
 	a.NotNil(store)
 
 	// 添加一个数据
@@ -59,18 +59,30 @@ func TestMemory(t *testing.T) {
 	mapped, err = store.Get("non")
 	a.NotError(err).Equal(0, len(mapped))
 
-	// GC
-	store.GC(2) // 生存时间为2秒
-	a.Equal(2, len(store.items))
-	// 休眠两秒后，所有数据都应该已经过期。
-	time.Sleep(time.Second * 2)
-	store.GC(2)
-	a.Equal(0, len(store.items))
-
 	// Free
 	a.NotError(store.Save("testData1", testData1))
 	a.NotError(store.Save("testData2", testData2))
 	a.Equal(2, len(store.items))
-	a.NotError(store.Free())
+	a.NotError(store.Close())
+	a.Equal(0, len(store.items))
+}
+
+func TestMemory_StartGC(t *testing.T) {
+	a := assert.New(t)
+
+	// 2秒后开始执行GC
+	store := NewMemory(2)
+	a.NotNil(store)
+
+	// 添加两条数据
+	a.NotError(store.Save("testData1", testData1))
+	a.NotError(store.Save("testData2", testData2))
+	a.Equal(2, len(store.items))
+
+	store.StartGC()
+	a.Equal(2, len(store.items))
+	time.Sleep(time.Second) // 延时1秒，数据还在
+	a.Equal(2, len(store.items))
+	time.Sleep(time.Second) // 再延时1秒，数据应该没了
 	a.Equal(0, len(store.items))
 }

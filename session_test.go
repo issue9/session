@@ -16,22 +16,18 @@ import (
 func TestSessionAccess1(t *testing.T) {
 	a := assert.New(t)
 
-	// 声明Options实例。
+	// 声明Manager实例。
 	store := newTestStore()
-	opt := newTestOptions(store, 10, "gosession")
-	a.NotNil(opt)
+	prv := newTestManager(10, "gosession")
+	mgr := New(store, prv)
+	a.NotNil(mgr)
 	defer func() {
-		a.NotError(opt.Close())
+		a.NotError(mgr.Close())
 	}()
 
 	h := func(w http.ResponseWriter, req *http.Request) {
-		sess, err := Start(opt, w, req)
+		sess, err := mgr.Start(w, req)
 		a.NotError(err).NotNil(sess)
-
-		// 通过多次调用Start()，返回的数据应该是不相同的。
-		sess1, err := Start(opt, w, req)
-		a.NotError(err).NotNil(sess1)
-		a.NotEqual(sess1, sess)
 
 		// 不存在的值
 		val, found := sess.Get("nil")
@@ -87,16 +83,18 @@ func TestSessionAccess2(t *testing.T) {
 
 	s1 := newTestStore()
 	s2 := newTestStore()
-	opt1 := newTestOptions(s1, 10, "gosession1")
-	opt2 := newTestOptions(s2, 10, "gosession2")
-	defer opt1.Close()
-	defer opt2.Close()
+	p1 := newTestManager(10, "gosession1")
+	p2 := newTestManager(10, "gosession2")
+	mgr1 := New(s1, p1)
+	mgr2 := New(s2, p2)
+	defer mgr1.Close()
+	defer mgr2.Close()
 
 	h := func(w http.ResponseWriter, req *http.Request) {
-		sess1, err := Start(opt1, w, req)
+		sess1, err := mgr1.Start(w, req)
 		a.NotError(err).NotNil(sess1)
 
-		sess2, err := Start(opt2, w, req)
+		sess2, err := mgr2.Start(w, req)
 		a.NotError(err).NotNil(sess2)
 		a.NotEqual(sess1, sess2)
 
