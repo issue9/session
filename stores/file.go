@@ -27,8 +27,8 @@ type file struct {
 // 声明一个实现session.Store接口的文件存储器，
 // 在该存储器下，每个session都将以单独的文件存储。
 // dir为session文件的存放路径。创建的文件权限默认为0600。
-// log用户记录在GC过程中发生的错误，若不需要这些，则指定为nil即可。
-func NewFile(dir string, lifetime int, log *log.Logger) (*file, error) {
+// l用户记录在GC过程中发生的错误，若不需要这些，则指定为nil即可。
+func NewFile(dir string, lifetime int, l *log.Logger) (*file, error) {
 	stat, err := os.Stat(dir)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -45,10 +45,14 @@ func NewFile(dir string, lifetime int, log *log.Logger) (*file, error) {
 		return nil, fmt.Errorf("[%v]存在，但不是一个有效的路径。", dir)
 	}
 
+	if l == nil { // TODO 若log.std公开，则可以直接使用log.std变量
+		l = log.New(os.Stderr, "session.FileStore", log.LstdFlags)
+	}
+
 	return &file{
 		dir:      dir + string(os.PathSeparator),
 		lifetime: time.Second * time.Duration(lifetime),
-		log:      log,
+		log:      l,
 	}, nil
 }
 
@@ -145,8 +149,8 @@ func (f *file) StartGC() {
 	f.ticker = time.NewTicker(f.lifetime)
 	go func() {
 		for range f.ticker.C {
-			if err := f.gc(); err != nil && f.log != nil {
-				f.log.Panicln(err.Error())
+			if err := f.gc(); err != nil {
+				f.log.Println(err.Error())
 			}
 		}
 	}()
