@@ -54,4 +54,4 @@
 package session
 
 // 当前库的版本号
-const Version = "0.8.9.150317"
+const Version = "0.8.10.150319"

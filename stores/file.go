@@ -27,7 +27,7 @@ type file struct {
 // 声明一个实现session.Store接口的文件存储器，
 // 在该存储器下，每个session都将以单独的文件存储。
 // dir为session文件的存放路径。创建的文件权限默认为0600。
-// l用户记录在GC过程中发生的错误，若不需要这些，则指定为nil即可。
+// l用户记录在GC过程中发生的错误，若指定为nil，则会向stderr输出错误信息。
 func NewFile(dir string, lifetime int, l *log.Logger) (*file, error) {
 	stat, err := os.Stat(dir)
 	if err != nil {
