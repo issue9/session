@@ -137,7 +137,7 @@ func (f *file) gc() error {
 		}
 
 		// 过期
-		if err := os.Remove(f.dir + info.Name()); err != nil {
+		if err = os.Remove(f.dir + info.Name()); err != nil {
 			return err
 		}
 	}
@@ -148,9 +148,8 @@ func (f *file) gc() error {
 func (f *file) StartGC() {
 	f.ticker = time.NewTicker(f.lifetime)
 	go func() {
-		var err error
 		for range f.ticker.C {
-			if err = f.gc(); err != nil {
+			if err := f.gc(); err != nil {
 				f.log.Println(err.Error())
 			}
 		}
