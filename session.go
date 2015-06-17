@@ -20,20 +20,19 @@ type Session struct {
 }
 
 // 获取指定键名对应的值，found表示该值是否存在。
-func (sess *Session) Get(key interface{}) (val interface{}, found bool) {
+func (sess *Session) Get(key interface{}) (interface{}, bool) {
 	sess.Lock()
-	defer sess.Unlock()
-
-	val, found = sess.items[key]
-	return
+	val, found := sess.items[key]
+	sess.Unlock()
+	return val, found
 }
 
 // 获取值，若键名对应的值不存在，则返回defVal。
 func (sess *Session) MustGet(key, defVal interface{}) interface{} {
 	sess.Lock()
-	defer sess.Unlock()
-
 	val, found := sess.items[key]
+	sess.Unlock()
+
 	if !found {
 		return defVal
 	}
@@ -43,17 +42,16 @@ func (sess *Session) MustGet(key, defVal interface{}) interface{} {
 // 添加或是设置值。
 func (sess *Session) Set(key, val interface{}) {
 	sess.Lock()
-	defer sess.Unlock()
-
 	sess.items[key] = val
+	sess.Unlock()
 }
 
 // 指定的键值是否存在。
 func (sess *Session) Exists(key interface{}) bool {
 	sess.Lock()
-	defer sess.Unlock()
-
 	_, found := sess.items[key]
+	sess.Unlock()
+
 	return found
 }
 
@@ -75,14 +73,13 @@ func (sess *Session) Close(w http.ResponseWriter, req *http.Request) error {
 // 之后Session.Get等操作数据的函数将不在可用。
 // 若需要同时从Store中去除，请执行Store.Delete()方法。
 func (sess *Session) Free(w http.ResponseWriter, req *http.Request) error {
-	sess.Lock()
-	defer sess.Unlock()
-
 	sess.manager.provider.Delete(w, req)
 
 	// 清空数据。
+	sess.Lock()
 	sess.items = nil
 	sess.manager = nil
+	sess.Unlock()
 
 	return nil
 }

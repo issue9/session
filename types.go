@@ -30,7 +30,8 @@ type Store interface {
 	Close() error
 }
 
-// 提供sessionid。
+// 提供sessionid的传递和保管。
+// 一般为通过cookie传递，也有可能是通过url参数传递。
 type Provider interface {
 	// 从req中获取sessionid的值。或当sessionid不存在时，产生一个新值。
 	Get(w http.ResponseWriter, req *http.Request) (sessID string, err error)
