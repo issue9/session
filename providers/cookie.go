@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/issue9/session"
+	"github.com/issue9/session/types"
 )
 
 // session操作的一些设置项。
@@ -24,7 +24,7 @@ type cookie struct {
 // lifetime：Session的生存周期，单位为秒；
 // sessionIDName sessionid在cookie中的名称；
 // path,domain,secure也分别对应cookie中相应的值。
-func NewCookie(lifetime int, sessionIDName, path, domain string, secure bool) session.Provider {
+func NewCookie(lifetime int, sessionIDName, path, domain string, secure bool) types.Provider {
 	return &cookie{
 		lifetime: lifetime,
 		cookie: &http.Cookie{

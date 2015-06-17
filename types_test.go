@@ -9,9 +9,11 @@ import (
 	"net/url"
 	"strconv"
 	"time"
+
+	"github.com/issue9/session/types"
 )
 
-var _ Store = &testStore{}
+var _ types.Store = &testStore{}
 
 // 测试用的Store接口实现。
 type testStore struct {
@@ -72,7 +74,7 @@ func (store *testStore) Close() error {
 	return nil
 }
 
-var _ Provider = &testProvider{}
+var _ types.Provider = &testProvider{}
 
 // 测试用Manager接口的实现。
 type testProvider struct {
@@ -81,7 +83,7 @@ type testProvider struct {
 	count    int // 用于产生唯一ID
 }
 
-func newTestManager(lifetime int, sessionIDName string) Provider {
+func newTestManager(lifetime int, sessionIDName string) types.Provider {
 	return &testProvider{
 		lifetime: lifetime,
 		cookie: &http.Cookie{

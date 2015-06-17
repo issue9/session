@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/issue9/assert"
-	sess "github.com/issue9/session"
+	"github.com/issue9/session/types"
 )
 
-var _ sess.Store = &memory{}
+var _ types.Store = &memory{}
 
 // 声明两行测试数据。
 var (

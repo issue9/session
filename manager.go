@@ -6,16 +6,18 @@ package session
 
 import (
 	"net/http"
+
+	"github.com/issue9/session/types"
 )
 
 // session管理。
 type Manager struct {
-	store    Store
-	provider Provider
+	store    types.Store
+	provider types.Provider
 }
 
 // 声明一个Manager实例。
-func New(store Store, prv Provider) *Manager {
+func New(store types.Store, prv types.Provider) *Manager {
 	store.StartGC()
 
 	return &Manager{

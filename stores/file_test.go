@@ -9,7 +9,10 @@ import (
 	"time"
 
 	"github.com/issue9/assert"
+	"github.com/issue9/session/types"
 )
+
+var s types.Store = &file{}
 
 func TestFile(t *testing.T) {
 	a := assert.New(t)
