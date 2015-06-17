@@ -11,12 +11,12 @@ import (
 	"testing"
 
 	"github.com/issue9/assert"
-	"github.com/issue9/session"
+	"github.com/issue9/session/types"
 )
 
-var _ session.Provider = &cookie{}
+var _ types.Provider = &cookie{}
 
-func newCookie(a *assert.Assertion) session.Provider {
+func newCookie(a *assert.Assertion) types.Provider {
 	provider := NewCookie(11, "gosession", "/", "localhost", false)
 	a.NotNil(provider)
 	return provider
