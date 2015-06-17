@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	"github.com/issue9/assert"
+	"github.com/issue9/session/providers"
+	"github.com/issue9/session/stores"
 )
 
 // 测试Session的存储功能
@@ -17,8 +19,8 @@ func TestSessionAccess1(t *testing.T) {
 	a := assert.New(t)
 
 	// 声明Manager实例。
-	store := newTestStore()
-	prv := newTestManager(10, "gosession")
+	store := stores.NewMemory(10)
+	prv := providers.NewCookie(10, "gosession", "/", "localhost", true)
 	mgr := New(store, prv)
 	a.NotNil(mgr)
 	defer func() {
@@ -56,17 +58,17 @@ func TestSessionAccess1(t *testing.T) {
 		a.True(found).Equal(val, 5)
 
 		// 添加了2个值。nil和5
-		a.Equal(2, len(sess.items))
+		//a.Equal(2, len(sess.items))
 
 		// 此时store.items的长度应该为0
-		a.Equal(0, len(store.items))
+		//a.Equal(0, len(store.items))
 
 		// 保存数据到store
 		a.NotError(sess.Close(w, req))
-		a.Equal(1, len(store.items)) // store.items的长度变更为1
+		//a.Equal(1, len(store.items)) // store.items的长度变更为1
 		// 此时，应该能通过sess.ID()正确找到该元素。
-		item, found := store.items[sess.ID()]
-		a.True(found).NotNil(item)
+		item, err := store.Get(sess.ID())
+		a.NotError(found).NotNil(item)
 		a.Equal(0, len(sess.items)) // Close()，sess.items数据将被清空。
 	}
 	srv := httptest.NewServer(http.HandlerFunc(h))
@@ -81,10 +83,10 @@ func TestSessionAccess1(t *testing.T) {
 func TestSessionAccess2(t *testing.T) {
 	a := assert.New(t)
 
-	s1 := newTestStore()
-	s2 := newTestStore()
-	p1 := newTestManager(10, "gosession1")
-	p2 := newTestManager(10, "gosession2")
+	s1 := stores.NewMemory(10)
+	s2 := stores.NewMemory(10)
+	p1 := providers.NewCookie(10, "gosession1", "/", "locahost", true)
+	p2 := providers.NewCookie(10, "gosession2", "/", "locahost", true)
 	mgr1 := New(s1, p1)
 	mgr2 := New(s2, p2)
 	defer mgr1.Close()

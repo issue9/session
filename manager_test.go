@@ -10,14 +10,16 @@ import (
 	"testing"
 
 	"github.com/issue9/assert"
+	"github.com/issue9/session/providers"
+	"github.com/issue9/session/stores"
 )
 
 func TestManager_Start(t *testing.T) {
 	a := assert.New(t)
 
 	// 声明Manager实例。
-	store := newTestStore()
-	prv := newTestManager(10, "gosession")
+	store := stores.NewMemory(10)
+	prv := providers.NewCookie(10, "gosession", "/", "localhost", true)
 	mgr := New(store, prv)
 	a.NotNil(mgr)
 	defer func() {
