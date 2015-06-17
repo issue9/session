@@ -57,15 +57,9 @@ func TestSessionAccess1(t *testing.T) {
 		val, found = sess.Get(nil)
 		a.True(found).Equal(val, 5)
 
-		// 添加了2个值。nil和5
-		//a.Equal(2, len(sess.items))
-
-		// 此时store.items的长度应该为0
-		//a.Equal(0, len(store.items))
-
 		// 保存数据到store
 		a.NotError(sess.Close(w, req))
-		//a.Equal(1, len(store.items)) // store.items的长度变更为1
+
 		// 此时，应该能通过sess.ID()正确找到该元素。
 		item, err := store.Get(sess.ID())
 		a.NotError(found).NotNil(item)
