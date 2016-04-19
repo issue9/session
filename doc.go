@@ -52,6 +52,3 @@
 //  frontMgr.Close()
 //  adminMgr.Close()
 package session
-
-// 当前库的版本号
-const Version = "0.9.12.150617"

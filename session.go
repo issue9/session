@@ -61,19 +61,19 @@ func (sess *Session) ID() string {
 }
 
 // 关闭当前的Session，相当于按顺序执行Session.Save()和Session.Free()。
-func (sess *Session) Close(w http.ResponseWriter, req *http.Request) error {
-	if err := sess.Save(w, req); err != nil {
+func (sess *Session) Close(w http.ResponseWriter, r *http.Request) error {
+	if err := sess.Save(w, r); err != nil {
 		return err
 	}
 
-	return sess.Free(w, req)
+	return sess.Free(w, r)
 }
 
 // 释放当前的Session空间，但依然存在于Store中。
 // 之后Session.Get等操作数据的函数将不在可用。
 // 若需要同时从Store中去除，请执行Store.Delete()方法。
-func (sess *Session) Free(w http.ResponseWriter, req *http.Request) error {
-	sess.manager.provider.Delete(w, req)
+func (sess *Session) Free(w http.ResponseWriter, r *http.Request) error {
+	sess.manager.provider.Delete(w, r)
 
 	// 清空数据。
 	sess.Lock()
@@ -86,7 +86,7 @@ func (sess *Session) Free(w http.ResponseWriter, req *http.Request) error {
 
 // 保存当前的Session值到Store中。
 // Session中的数据依然存在，可以继续使用Get()等函数获取数据。
-func (sess *Session) Save(w http.ResponseWriter, req *http.Request) error {
+func (sess *Session) Save(w http.ResponseWriter, r *http.Request) error {
 	if sess.items == nil {
 		return errors.New("数据已经被释放。")
 	}

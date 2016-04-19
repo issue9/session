@@ -10,7 +10,7 @@ import (
 
 // Session的存储接口。
 //
-// 不能将一个Store实例与多个Options实例进行关联。
+// 不能将一个Store实例与多个Provider实例进行关联。
 // 否则可能会造成Session数据相互覆盖的情况。
 type Store interface {
 	// 从Store中删除指定sessionid的数据。
@@ -31,11 +31,11 @@ type Store interface {
 }
 
 // 提供sessionid的传递和保管。
-// 一般为通过cookie传递，也有可能是通过url参数传递。
+// 一般为通过cookie或是token等方式。
 type Provider interface {
-	// 从req中获取sessionid的值。或当sessionid不存在时，产生一个新值。
-	Get(w http.ResponseWriter, req *http.Request) (sessID string, err error)
+	// 从r中获取sessionid的值。或当sessionid不存在时，产生一个新值。
+	Get(w http.ResponseWriter, r *http.Request) (sessID string, err error)
 
 	// 删除当前保存的sessionid值。
-	Delete(w http.ResponseWriter, req *http.Request) error
+	Delete(w http.ResponseWriter, r *http.Request) error
 }

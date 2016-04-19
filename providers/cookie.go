@@ -15,7 +15,7 @@ import (
 // session操作的一些设置项。
 // 目前sessionid保存于cookie中，cookie的设置都是通过Cookie完成的。
 type cookie struct {
-	cookie   *http.Cookie
+	cookie   *http.Cookie // 缓存一些cookie的值
 	lifetime int
 }
 
@@ -38,16 +38,16 @@ func NewCookie(lifetime int, sessionIDName, path, domain string, secure bool) ty
 }
 
 // session.Provider.Get()
-func (c *cookie) Get(w http.ResponseWriter, req *http.Request) (sessID string, err error) {
-	cookie, err := req.Cookie(c.cookie.Name)
+func (c *cookie) Get(w http.ResponseWriter, r *http.Request) (sessID string, err error) {
+	cookie, err := r.Cookie(c.cookie.Name)
 
 	if err != nil || len(cookie.Value) == 0 { // 不存在，产生新的
 		if sessID, err = sessionID(); err != nil {
-			return sessID, err
+			return "", err
 		}
 	} else { // 从Cookie中获取sessionid值。
 		if sessID, err = url.QueryUnescape(cookie.Value); err != nil {
-			return sessID, err
+			return "", err
 		}
 	}
 
@@ -62,7 +62,7 @@ func (c *cookie) Get(w http.ResponseWriter, req *http.Request) (sessID string, e
 }
 
 // session.Provider.Delete()
-func (c *cookie) Delete(w http.ResponseWriter, req *http.Request) error {
+func (c *cookie) Delete(w http.ResponseWriter, r *http.Request) error {
 	c.cookie.MaxAge = -1
 	http.SetCookie(w, c.cookie)
 

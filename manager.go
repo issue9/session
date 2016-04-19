@@ -34,8 +34,8 @@ func (mgr *Manager) Close() error {
 // 获取与当前请求相关联的session数据。
 // 在一个Session中，不能多次调用Start()。
 // 当然也可以把获取的Session实例保存到Context等实例中，方便之后获取。
-func (mgr *Manager) Start(w http.ResponseWriter, req *http.Request) (*Session, error) {
-	sessID, err := mgr.provider.Get(w, req)
+func (mgr *Manager) Start(w http.ResponseWriter, r *http.Request) (*Session, error) {
+	sessID, err := mgr.provider.Get(w, r)
 	if err != nil {
 		return nil, err
 	}
